@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#1769e0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Mi Bebé">
+  <link rel="manifest" href="./manifest.webmanifest">
+  
+  <style>
+*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;background:#f5f7fb;color:#182235}body{min-height:100vh}.app{max-width:520px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 18px calc(95px + env(safe-area-inset-bottom))}.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.eyebrow{margin:0 0 2px;color:#778196;font-size:13px}.topbar h1{font-size:32px;line-height:1;margin:0;font-weight:800}.age{margin:7px 0 0;color:#667085;font-weight:600}.avatar{width:54px;height:54px;border:0;border-radius:18px;background:white;box-shadow:0 5px 18px #172b4d14;font-size:27px}.card{background:#fff;border:1px solid #edf0f5;border-radius:22px;box-shadow:0 7px 24px #172b4d0b}.hero{padding:20px;display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}.hero h2{margin:8px 0 2px;font-size:19px}.hero p{margin:0;color:#7b8496;font-size:13px}.pill{background:#eaf2ff;color:#1769e0;border-radius:20px;padding:6px 10px;font-size:12px;font-weight:700}.hero-date{font-size:38px;font-weight:800;color:#1769e0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{padding:14px;display:flex;gap:11px;align-items:center;cursor:pointer}.stat-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:21px}.blue{background:#eaf2ff}.purple{background:#f0ebff}.yellow{background:#fff4d9}.green{background:#e4f7ed}.stat span{display:block;font-size:12px;color:#778196;margin-bottom:4px}.stat strong{font-size:14px}.primary{width:100%;margin:14px 0 24px;padding:15px;border:0;border-radius:16px;background:#1769e0;color:#fff;font-size:16px;font-weight:750;box-shadow:0 8px 18px #1769e033}.section-title{display:flex;justify-content:space-between;align-items:center}.section-title h2{font-size:18px;margin:0 0 10px}.link{border:0;background:none;color:#1769e0;font-weight:700}.list{display:grid;gap:9px}.record{background:#fff;border:1px solid #edf0f5;border-radius:15px;padding:13px;display:flex;justify-content:space-between}.record-main{display:flex;gap:10px;align-items:center}.record-icon{font-size:22px}.record small{color:#8992a3}.empty{padding:25px;text-align:center;color:#8992a3;background:#fff;border-radius:16px}.bottom-nav{position:fixed;z-index:10;left:50%;transform:translateX(-50%);bottom:0;width:min(520px,100%);padding:9px 8px calc(9px + env(safe-area-inset-bottom));background:#ffffffee;backdrop-filter:blur(16px);border-top:1px solid #e9edf3;display:flex;justify-content:space-around}.nav{border:0;background:none;color:#8b94a6;font-size:21px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 10px}.nav span{font-size:10px}.nav.active{color:#1769e0}.modal{position:fixed;inset:0;background:#0005;z-index:20;display:flex;align-items:flex-end}.modal[hidden]{display:none}.sheet{width:min(520px,100%);margin:auto;background:#fff;border-radius:26px 26px 0 0;padding:24px 20px calc(28px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto;position:relative}.close{position:absolute;right:16px;top:12px;border:0;background:#f0f2f6;border-radius:50%;width:34px;height:34px;font-size:23px}.sheet h2{margin:0 35px 20px;font-size:22px}.form{display:grid;gap:13px}.form label{font-size:13px;color:#667085;font-weight:650}.form input,.form select,.form textarea{width:100%;padding:13px;border:1px solid #dfe4ec;border-radius:13px;font:inherit;background:#fafbfc}.form textarea{min-height:90px;resize:vertical}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:5px}.btn{padding:13px;border-radius:13px;border:1px solid #dce2eb;background:#fff;font-weight:700}.btn.primary-btn{background:#1769e0;color:#fff;border-color:#1769e0}.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.choice{padding:12px 5px;border:1px solid #dfe4ec;border-radius:13px;background:#fff}.choice.selected{border-color:#1769e0;background:#eaf2ff;color:#1769e0}.menu{display:grid;gap:10px}.menu button{padding:16px;border:1px solid #edf0f5;background:#fff;border-radius:15px;text-align:left;font-size:15px;font-weight:650}.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#182235;color:#fff;padding:11px 16px;border-radius:13px;font-size:13px;z-index:30}@media(min-width:600px){.bottom-nav{bottom:14px;border:1px solid #e9edf3;border-radius:22px;width:500px}.app{padding-bottom:125px}}
+</style>
+  <title>Mi Bebé 🩵</title>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Mi pequeño</p>
+        <h1>Liam <span>🩵</span></h1>
+        <p id="babyAge" class="age">Calculando edad…</p>
+      </div>
+      <button class="avatar" id="photoBtn" aria-label="Agregar foto">👶</button>
+      <input id="photoInput" type="file" accept="image/*" hidden>
+    </header>
+
+    <section class="hero card">
+      <div>
+        <span class="pill">Hoy</span>
+        <h2>Resumen del día</h2>
+        <p id="todayLabel"></p>
+      </div>
+      <div class="hero-date" id="dayNumber"></div>
+    </section>
+
+    <section class="grid">
+      <article class="stat card" data-open="feeding">
+        <div class="stat-icon blue">🍼</div>
+        <div><span>Alimentación</span><strong id="feedSummary">Sin registros</strong></div>
+      </article>
+      <article class="stat card" data-open="sleep">
+        <div class="stat-icon purple">😴</div>
+        <div><span>Sueño</span><strong id="sleepSummary">Sin registros</strong></div>
+      </article>
+      <article class="stat card" data-open="diaper">
+        <div class="stat-icon yellow">🧷</div>
+        <div><span>Pañales</span><strong id="diaperSummary">0 hoy</strong></div>
+      </article>
+      <article class="stat card" data-open="growth">
+        <div class="stat-icon green">⚖️</div>
+        <div><span>Último peso</span><strong id="weightSummary">Sin registros</strong></div>
+      </article>
+    </section>
+
+    <button class="primary" id="quickAdd">＋ Registrar actividad</button>
+
+    <section class="section">
+      <div class="section-title"><h2>Últimos registros</h2><button class="link" id="viewAll">Ver todo</button></div>
+      <div id="recentList" class="list"></div>
+    </section>
+
+    <nav class="bottom-nav">
+      <button class="nav active" data-tab="home">⌂<span>Inicio</span></button>
+      <button class="nav" data-tab="activity">✚<span>Actividades</span></button>
+      <button class="nav" data-tab="growth">⌁<span>Crecimiento</span></button>
+      <button class="nav" data-tab="diary">♡<span>Diario</span></button>
+      <button class="nav" data-tab="more">☰<span>Más</span></button>
+    </nav>
+  </main>
+
+  <div class="modal" id="modal" hidden>
+    <div class="sheet">
+      <button class="close" id="closeModal">×</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+  <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").catch(()=>{});}</script>
+</body>
+</html>
