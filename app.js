@@ -350,7 +350,7 @@ function render(){
       month:'long'
     });
 
-  $('#dayNumber').textContent=n.getDate();
+  $('#dayNumber').textContent=n.getDate();updateNextFeed();
 
   const reminder=$('#reminderInfo');
 
