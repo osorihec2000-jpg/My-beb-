@@ -1,9 +1,10 @@
-const KEY='miBebeData_v2';
+const KEY='miBebeData_v3';
 const baby={name:'Liam',birth:'2026-06-09'};
 
-let data=JSON.parse(localStorage.getItem(KEY)||'{"records":[],"photo":"","appointments":[]}');
+let data=JSON.parse(localStorage.getItem(KEY)||'{"records":[],"photo":"","appointments":[],"nextFeed":null}');
 data.records=data.records||[];
 data.appointments=data.appointments||[];
+data.nextFeed=data.nextFeed||null;
 
 const $=s=>document.querySelector(s);
 const today=()=>new Date().toISOString().slice(0,10);
@@ -48,17 +49,8 @@ function exactAge(){
   const seconds=Math.floor(remaining/1000);
   const milliseconds=remaining%1000;
 
-  const totalWeeks=Math.floor((now-birth)/604800000);
-
   return {
-    years,
-    months,
-    days,
-    hours,
-    minutes,
-    seconds,
-    milliseconds,
-    totalWeeks
+    years,months,days,hours,minutes,seconds,milliseconds
   };
 }
 
@@ -72,6 +64,187 @@ function ageText(){
     `${a.minutes} ${a.minutes===1?'minuto':'minutos'} · `+
     `${a.seconds} ${a.seconds===1?'segundo':'segundos'} · `+
     `${String(a.milliseconds).padStart(3,'0')} milésimas`;
+}
+
+function nextCumplemes(){
+
+  const now=new Date();
+
+  let d=new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    9,
+    9,0,0
+  );
+
+  if(d<=now){
+    d=new Date(
+      now.getFullYear(),
+      now.getMonth()+1,
+      9,
+      9,0,0
+    );
+  }
+
+  return d;
+}
+
+function nextBirthday(){
+
+  const now=new Date();
+
+  let d=new Date(
+    now.getFullYear(),
+    5,
+    9,
+    9,0,0
+  );
+
+  if(d<=now){
+    d=new Date(
+      now.getFullYear()+1,
+      5,
+      9,
+      9,0,0
+    );
+  }
+
+  return d;
+}
+
+function reminderText(){
+
+  const cm=nextCumplemes();
+  const bd=nextBirthday();
+
+  let text=
+    `🩵 Próximo cumplemes: ${cm.toLocaleDateString('es-US',{month:'long',day:'numeric'})}`;
+
+  if(data.nextFeed){
+    const f=new Date(data.nextFeed);
+
+    if(f>new Date()){
+      text+=
+        ` · 🍼 Próxima toma: ${fmtTime(f)}`;
+    }
+  }
+
+  return text;
+}
+
+function requestNotifications(){
+
+  if(!('Notification' in window)){
+    toast('Este dispositivo no permite notificaciones web aquí');
+    return;
+  }
+
+  Notification.requestPermission().then(p=>{
+
+    if(p==='granted'){
+      toast('🔔 Notificaciones activadas');
+      checkReminders();
+    }else{
+      toast('Las notificaciones no fueron activadas');
+    }
+
+  });
+}
+
+function sendNotification(title,body){
+
+  if(
+    'Notification' in window &&
+    Notification.permission==='granted'
+  ){
+    try{
+      new Notification(title,{body});
+    }catch(e){}
+  }
+}
+
+function checkReminders(){
+
+  const now=Date.now();
+
+  if(data.nextFeed){
+
+    const feedTime=new Date(data.nextFeed).getTime();
+
+    if(
+      now>=feedTime &&
+      now<feedTime+60000
+    ){
+
+      sendNotification(
+        '🍼 Hora de la toma de Liam 🩵',
+        'Han pasado 3 horas desde la última toma.'
+      );
+
+      data.nextFeed=null;
+      localStorage.setItem(KEY,JSON.stringify(data));
+      render();
+    }
+  }
+
+  const nowDate=new Date();
+
+  if(
+    nowDate.getDate()===9 &&
+    nowDate.getHours()===9 &&
+    nowDate.getMinutes()===0
+  ){
+
+    const key=
+      'cumplemes_'+
+      nowDate.getFullYear()+'_'+
+      nowDate.getMonth();
+
+    if(localStorage.getItem(key)!=='yes'){
+
+      sendNotification(
+        '🩵 Cumplemes de Liam',
+        '¡Hoy Liam cumple un mes más de vida! 🎉'
+      );
+
+      localStorage.setItem(key,'yes');
+    }
+  }
+
+  if(
+    nowDate.getMonth()===5 &&
+    nowDate.getDate()===9 &&
+    nowDate.getHours()===9 &&
+    nowDate.getMinutes()===0
+  ){
+
+    const key='birthday_'+nowDate.getFullYear();
+
+    if(localStorage.getItem(key)!=='yes'){
+
+      sendNotification(
+        '🎂 ¡Feliz cumpleaños, Liam 🩵!',
+        'Hoy Liam cumple años. 🎉'
+      );
+
+      localStorage.setItem(key,'yes');
+    }
+  }
+}
+
+function scheduleNextFeed(){
+
+  const next=Date.now()+3*60*60*1000;
+
+  data.nextFeed=next;
+
+  save();
+
+  requestNotifications();
+
+  toast(
+    `🍼 Próxima toma: ${fmtTime(next)}`
+  );
 }
 
 function render(){
@@ -88,6 +261,12 @@ function render(){
 
   $('#dayNumber').textContent=n.getDate();
 
+  const reminder=$('#reminderInfo');
+
+  if(reminder){
+    reminder.textContent=reminderText();
+  }
+
   const r=data.records.filter(x=>x.date===today());
 
   const f=r.filter(x=>x.type==='feeding');
@@ -99,10 +278,14 @@ function render(){
     .sort((a,b)=>b.ts-a.ts)[0];
 
   $('#feedSummary').textContent=
-    f.length?`${f.length} registro${f.length>1?'s':''}`:'Sin registros';
+    f.length?
+    `${f.length} registro${f.length>1?'s':''}`:
+    'Sin registros';
 
   $('#sleepSummary').textContent=
-    s.length?`${s.length} registro${s.length>1?'s':''}`:'Sin registros';
+    s.length?
+    `${s.length} registro${s.length>1?'s':''}`:
+    'Sin registros';
 
   $('#diaperSummary').textContent=`${d.length} hoy`;
 
@@ -113,35 +296,55 @@ function render(){
     .sort((a,b)=>b.ts-a.ts)
     .slice(0,8);
 
-  $('#recentList').innerHTML=recent.length?
+  $('#recentList').innerHTML=
+    recent.length?
+
     recent.map(x=>`
       <div class="record">
         <div class="record-main">
-          <div class="record-icon">${icon(x.type)}</div>
+          <div class="record-icon">
+            ${icon(x.type)}
+          </div>
+
           <div>
             <strong>${title(x.type)}</strong><br>
-            <small>${x.detail} · ${fmtTime(x.ts)}</small>
+            <small>
+              ${x.detail} · ${fmtTime(x.ts)}
+            </small>
           </div>
         </div>
-        <button class="link" data-delete="${x.id}">
+
+        <button
+          class="link"
+          data-delete="${x.id}">
           Eliminar
         </button>
       </div>
     `).join(''):
+
     '<div class="empty">Aún no hay registros.<br>Presiona “Registrar actividad” para comenzar.</div>';
 
-  document.querySelectorAll('[data-delete]').forEach(b=>{
-    b.onclick=()=>{
-      data.records=data.records.filter(
-        x=>x.id!==b.dataset.delete
-      );
-      save();
-      toast('Registro eliminado');
-    };
-  });
+  document.querySelectorAll('[data-delete]')
+    .forEach(b=>{
+
+      b.onclick=()=>{
+
+        data.records=data.records.filter(
+          x=>x.id!==b.dataset.delete
+        );
+
+        save();
+
+        toast('Registro eliminado');
+      };
+
+    });
 
   if(data.photo){
-    $('#photoBtn').style.backgroundImage=`url(${data.photo})`;
+
+    $('#photoBtn').style.backgroundImage=
+      `url(${data.photo})`;
+
     $('#photoBtn').style.backgroundSize='cover';
     $('#photoBtn').textContent='';
   }
@@ -177,6 +380,10 @@ function openModal(kind){
       <h2>Más</h2>
 
       <div class="menu">
+
+        <button data-action="notifications">
+          🔔 Activar notificaciones
+        </button>
 
         <button data-action="appointments">
           🏥 Citas médicas
@@ -214,6 +421,7 @@ function openModal(kind){
             (a.date+a.time).localeCompare(b.date+b.time)
           )
           .map(x=>`
+
             <div class="record">
 
               <div>
@@ -229,7 +437,8 @@ function openModal(kind){
                   ${x.time?' · ⏰ '+x.time:''}
                 </small>
 
-                ${x.note?
+                ${
+                  x.note?
                   `<br><small>${x.note}</small>`:
                   ''
                 }
@@ -243,7 +452,8 @@ function openModal(kind){
               </button>
 
             </div>
-          `).join('') ||
+
+          `).join('')||
 
           '<div class="empty">No hay citas médicas guardadas.</div>'
         }
@@ -499,6 +709,7 @@ function openModal(kind){
             required
             placeholder="Un momento especial de Liam 🩵…">
           </textarea>
+
         </label>
 
         <div class="actions">
@@ -564,6 +775,7 @@ function openModal(kind){
           [...data.records]
           .sort((a,b)=>b.ts-a.ts)
           .map(x=>`
+
             <div class="record">
 
               <div>
@@ -582,7 +794,8 @@ function openModal(kind){
               </div>
 
             </div>
-          `).join('') ||
+
+          `).join('')||
 
           '<div class="empty">No hay registros.</div>'
         }
@@ -647,7 +860,13 @@ function openModal(kind){
       });
 
       save();
+
+      if(kind==='feeding'){
+        scheduleNextFeed();
+      }
+
       closeModal();
+
       toast('Guardado correctamente');
     };
   }
@@ -675,6 +894,12 @@ function openModal(kind){
 
     });
 
+  document.querySelector('[data-action="notifications"]')
+    ?.addEventListener(
+      'click',
+      requestNotifications
+    );
+
   document.querySelector('[data-action="appointments"]')
     ?.addEventListener(
       'click',
@@ -695,6 +920,7 @@ function openModal(kind){
         if(confirm('¿Borrar todos los registros?')){
 
           data.records=[];
+          data.nextFeed=null;
 
           save();
 
@@ -841,4 +1067,6 @@ setInterval(()=>{
   if(el)
     el.textContent=ageText();
 
-},50);
+  checkReminders();
+
+},1000);
