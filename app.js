@@ -9,7 +9,51 @@ data.nextFeed=data.nextFeed||null;
 const $=s=>document.querySelector(s);
 const today=()=>new Date().toISOString().slice(0,10);
 const fmtTime=t=>new Date(t).toLocaleTimeString('es-US',{hour:'numeric',minute:'2-digit'});
+const FEED_INTERVAL = 3 * 60 * 60 * 1000;
 
+function updateNextFeed(){
+  const elTime = document.querySelector('#nextFeedTime');
+  const elCountdown = document.querySelector('#nextFeedCountdown');
+
+  if(!elTime || !elCountdown) return;
+
+  const feeds = data.records
+    .filter(x => x.type === 'feeding')
+    .sort((a,b) => b.ts - a.ts);
+
+  if(!feeds.length){
+    elTime.textContent = 'Sin toma programada';
+    elCountdown.textContent = 'Registra una toma para programarla';
+    return;
+  }
+
+  const next = feeds[0].ts + FEED_INTERVAL;
+  const now = Date.now();
+  const remaining = next - now;
+
+  const nextDate = new Date(next);
+
+  elTime.textContent = nextDate.toLocaleTimeString('es-US',{
+    hour:'numeric',
+    minute:'2-digit'
+  });
+
+  if(remaining <= 0){
+    elCountdown.textContent = '🍼 ¡Ya toca la próxima toma!';
+    return;
+  }
+
+  const hours = Math.floor(remaining / 3600000);
+  const minutes = Math.floor((remaining % 3600000) / 60000);
+
+  if(hours > 0){
+    elCountdown.textContent =
+      `Faltan ${hours} ${hours === 1 ? 'hora' : 'horas'} y ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
+  }else{
+    elCountdown.textContent =
+      `Faltan ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
+  }
+}
 function save(){
   localStorage.setItem(KEY,JSON.stringify(data));
   render();
@@ -239,7 +283,7 @@ function scheduleNextFeed(){
   data.nextFeed=next;
 
   save();
-
+updateNextFeed();
   requestNotifications();
 
   toast(
@@ -1059,7 +1103,9 @@ $('#photoInput').onchange=e=>{
 };
 
 render();
+updateNextFeed();
 
+setInterval(updateNextFeed, 30000);
 setInterval(()=>{
 
   const el=$('#babyAge');
