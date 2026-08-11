@@ -276,7 +276,54 @@ function checkReminders(){
   }
 }
 
-function scheduleNextFeed(){
+function updateNextFeed(){
+
+  const elTime=document.querySelector('#nextFeedTime');
+  const elCountdown=document.querySelector('#nextFeedCountdown');
+
+  if(!elTime || !elCountdown)return;
+
+  if(!data.nextFeed){
+
+    elTime.textContent='Sin toma programada';
+    elCountdown.textContent='Registra una toma para programarla';
+
+    return;
+  }
+
+  const next=Number(data.nextFeed);
+  const now=Date.now();
+  const remaining=next-now;
+
+  const nextDate=new Date(next);
+
+  elTime.textContent=
+    nextDate.toLocaleTimeString('es-US',{
+      hour:'numeric',
+      minute:'2-digit'
+    });
+
+  if(remaining<=0){
+
+    elCountdown.textContent=
+      '🍼 ¡Ya toca la próxima toma!';
+
+    return;
+  }
+
+  const hours=Math.floor(
+    remaining/3600000
+  );
+
+  const minutes=Math.floor(
+    (remaining%3600000)/60000
+  );
+
+  elCountdown.textContent=
+    hours>0
+    ? `Faltan ${hours} ${hours===1?'hora':'horas'} y ${minutes} ${minutes===1?'minuto':'minutos'}`
+    : `Faltan ${minutes} ${minutes===1?'minuto':'minutos'}`;
+}
 
   const next=Date.now()+3*60*60*1000;
 
