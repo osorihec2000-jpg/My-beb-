@@ -1,65 +1,48 @@
 const KEY='miBebeData_v3';
-const baby={name:'Liam',birth:'2026-06-09'};
 
-let data=JSON.parse(localStorage.getItem(KEY)||'{"records":[],"photo":"","appointments":[],"nextFeed":null}');
+const baby={
+  name:'Liam',
+  birth:'2026-06-09'
+};
+
+let data=JSON.parse(
+  localStorage.getItem(KEY) ||
+  '{"records":[],"photo":"","appointments":[],"nextFeed":null}'
+);
+
 data.records=data.records||[];
 data.appointments=data.appointments||[];
 data.nextFeed=data.nextFeed||null;
 
 const $=s=>document.querySelector(s);
+
 const today=()=>new Date().toISOString().slice(0,10);
-const fmtTime=t=>new Date(t).toLocaleTimeString('es-US',{hour:'numeric',minute:'2-digit'});
-const FEED_INTERVAL = 3 * 60 * 60 * 1000;
 
-function updateNextFeed(){
-  const elTime = document.querySelector('#nextFeedTime');
-  const elCountdown = document.querySelector('#nextFeedCountdown');
-
-  if(!elTime || !elCountdown) return;
-
-  const feeds = data.records
-    .filter(x => x.type === 'feeding')
-    .sort((a,b) => b.ts - a.ts);
-
-  if(!feeds.length){
-    elTime.textContent = 'Sin toma programada';
-    elCountdown.textContent = 'Registra una toma para programarla';
-    return;
-  }
-
-  const next = feeds[0].ts + FEED_INTERVAL;
-  const now = Date.now();
-  const remaining = next - now;
-
-  const nextDate = new Date(next);
-
-  elTime.textContent = nextDate.toLocaleTimeString('es-US',{
+const fmtTime=t=>
+  new Date(t).toLocaleTimeString('es-US',{
     hour:'numeric',
     minute:'2-digit'
   });
 
-  if(remaining <= 0){
-    elCountdown.textContent = '🍼 ¡Ya toca la próxima toma!';
-    return;
-  }
+const FEED_INTERVAL=3*60*60*1000;
 
-  const hours = Math.floor(remaining / 3600000);
-  const minutes = Math.floor((remaining % 3600000) / 60000);
 
-  if(hours > 0){
-    elCountdown.textContent =
-      `Faltan ${hours} ${hours === 1 ? 'hora' : 'horas'} y ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
-  }else{
-    elCountdown.textContent =
-      `Faltan ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
-  }
-}
+/* =========================
+   GUARDAR
+========================= */
+
 function save(){
   localStorage.setItem(KEY,JSON.stringify(data));
   render();
 }
 
+
+/* =========================
+   EDAD EXACTA
+========================= */
+
 function exactAge(){
+
   const birth=new Date('2026-06-09T00:00:00');
   const now=new Date();
 
@@ -69,7 +52,11 @@ function exactAge(){
 
   if(days<0){
     months--;
-    days+=new Date(now.getFullYear(),now.getMonth(),0).getDate();
+    days+=new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0
+    ).getDate();
   }
 
   if(months<0){
@@ -78,221 +65,115 @@ function exactAge(){
   }
 
   const base=new Date(birth);
-  base.setFullYear(birth.getFullYear()+years);
-  base.setMonth(birth.getMonth()+months);
-  base.setDate(base.getDate()+days);
+
+  base.setFullYear(
+    birth.getFullYear()+years
+  );
+
+  base.setMonth(
+    birth.getMonth()+months
+  );
+
+  base.setDate(
+    base.getDate()+days
+  );
 
   let remaining=now-base;
 
-  const hours=Math.floor(remaining/3600000);
+  const hours=Math.floor(
+    remaining/3600000
+  );
+
   remaining%=3600000;
 
-  const minutes=Math.floor(remaining/60000);
+  const minutes=Math.floor(
+    remaining/60000
+  );
+
   remaining%=60000;
 
-  const seconds=Math.floor(remaining/1000);
+  const seconds=Math.floor(
+    remaining/1000
+  );
+
   const milliseconds=remaining%1000;
 
-  return {
-    years,months,days,hours,minutes,seconds,milliseconds
+  return{
+    years,
+    months,
+    days,
+    hours,
+    minutes,
+    seconds,
+    milliseconds
   };
 }
 
+
 function ageText(){
+
   const a=exactAge();
 
-  return `${a.years} ${a.years===1?'año':'años'} · `+
+  return(
+    `${a.years} ${a.years===1?'año':'años'} · `+
     `${a.months} ${a.months===1?'mes':'meses'} · `+
     `${a.days} ${a.days===1?'día':'días'} · `+
     `${a.hours} ${a.hours===1?'hora':'horas'} · `+
     `${a.minutes} ${a.minutes===1?'minuto':'minutos'} · `+
     `${a.seconds} ${a.seconds===1?'segundo':'segundos'} · `+
-    `${String(a.milliseconds).padStart(3,'0')} milésimas`;
-}
-
-function nextCumplemes(){
-
-  const now=new Date();
-
-  let d=new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    9,
-    9,0,0
+    `${String(a.milliseconds).padStart(3,'0')} milésimas`
   );
-
-  if(d<=now){
-    d=new Date(
-      now.getFullYear(),
-      now.getMonth()+1,
-      9,
-      9,0,0
-    );
-  }
-
-  return d;
 }
 
-function nextBirthday(){
 
-  const now=new Date();
+/* =========================
+   PRÓXIMA TOMA
+========================= */
 
-  let d=new Date(
-    now.getFullYear(),
-    5,
-    9,
-    9,0,0
+function scheduleNextFeed(){
+
+  const next=
+    Date.now()+FEED_INTERVAL;
+
+  data.nextFeed=next;
+
+  save();
+
+  updateNextFeed();
+
+  requestNotifications();
+
+  toast(
+    `🍼 Próxima toma: ${fmtTime(next)}`
   );
-
-  if(d<=now){
-    d=new Date(
-      now.getFullYear()+1,
-      5,
-      9,
-      9,0,0
-    );
-  }
-
-  return d;
 }
 
-function reminderText(){
-
-  const cm=nextCumplemes();
-  const bd=nextBirthday();
-
-  let text=
-    `🩵 Próximo cumplemes: ${cm.toLocaleDateString('es-US',{month:'long',day:'numeric'})}`;
-
-  if(data.nextFeed){
-    const f=new Date(data.nextFeed);
-
-    if(f>new Date()){
-      text+=
-        ` · 🍼 Próxima toma: ${fmtTime(f)}`;
-    }
-  }
-
-  return text;
-}
-
-function requestNotifications(){
-
-  if(!('Notification' in window)){
-    toast('Este dispositivo no permite notificaciones web aquí');
-    return;
-  }
-
-  Notification.requestPermission().then(p=>{
-
-    if(p==='granted'){
-      toast('🔔 Notificaciones activadas');
-      checkReminders();
-    }else{
-      toast('Las notificaciones no fueron activadas');
-    }
-
-  });
-}
-
-function sendNotification(title,body){
-
-  if(
-    'Notification' in window &&
-    Notification.permission==='granted'
-  ){
-    try{
-      new Notification(title,{body});
-    }catch(e){}
-  }
-}
-
-function checkReminders(){
-
-  const now=Date.now();
-
-  if(data.nextFeed){
-
-    const feedTime=new Date(data.nextFeed).getTime();
-
-    if(
-      now>=feedTime &&
-      now<feedTime+60000
-    ){
-
-      sendNotification(
-        '🍼 Hora de la toma de Liam 🩵',
-        'Han pasado 3 horas desde la última toma.'
-      );
-
-      data.nextFeed=null;
-      localStorage.setItem(KEY,JSON.stringify(data));
-      render();
-    }
-  }
-
-  const nowDate=new Date();
-
-  if(
-    nowDate.getDate()===9 &&
-    nowDate.getHours()===9 &&
-    nowDate.getMinutes()===0
-  ){
-
-    const key=
-      'cumplemes_'+
-      nowDate.getFullYear()+'_'+
-      nowDate.getMonth();
-
-    if(localStorage.getItem(key)!=='yes'){
-
-      sendNotification(
-        '🩵 Cumplemes de Liam',
-        '¡Hoy Liam cumple un mes más de vida! 🎉'
-      );
-
-      localStorage.setItem(key,'yes');
-    }
-  }
-
-  if(
-    nowDate.getMonth()===5 &&
-    nowDate.getDate()===9 &&
-    nowDate.getHours()===9 &&
-    nowDate.getMinutes()===0
-  ){
-
-    const key='birthday_'+nowDate.getFullYear();
-
-    if(localStorage.getItem(key)!=='yes'){
-
-      sendNotification(
-        '🎂 ¡Feliz cumpleaños, Liam 🩵!',
-        'Hoy Liam cumple años. 🎉'
-      );
-
-      localStorage.setItem(key,'yes');
-    }
-  }
-}
 
 function updateNextFeed(){
 
-  const elTime=document.querySelector('#nextFeedTime');
-  const elCountdown=document.querySelector('#nextFeedCountdown');
+  const elTime=
+    document.querySelector('#nextFeedTime');
 
-  if(!elTime || !elCountdown)return;
+  const elCountdown=
+    document.querySelector('#nextFeedCountdown');
+
+  if(!elTime||!elCountdown)return;
 
   if(!data.nextFeed){
 
-    elTime.textContent='Sin toma programada';
-    elCountdown.textContent='Registra una toma para programarla';
+    elTime.textContent=
+      'Sin toma programada';
+
+    elCountdown.textContent=
+      'Registra una toma para programarla';
 
     return;
   }
 
   const next=Number(data.nextFeed);
+
   const now=Date.now();
+
   const remaining=next-now;
 
   const nextDate=new Date(next);
@@ -319,129 +200,454 @@ function updateNextFeed(){
     (remaining%3600000)/60000
   );
 
-  elCountdown.textContent=
-    hours>0
-    ? `Faltan ${hours} ${hours===1?'hora':'horas'} y ${minutes} ${minutes===1?'minuto':'minutos'}`
-    : `Faltan ${minutes} ${minutes===1?'minuto':'minutos'}`;
+  if(hours>0){
+
+    elCountdown.textContent=
+      `Faltan ${hours} ${
+        hours===1?'hora':'horas'
+      } y ${minutes} ${
+        minutes===1?'minuto':'minutos'
+      }`;
+
+  }else{
+
+    elCountdown.textContent=
+      `Faltan ${minutes} ${
+        minutes===1?'minuto':'minutos'
+      }`;
+  }
 }
 
-  const next=Date.now()+3*60*60*1000;
 
-  data.nextFeed=next;
+/* =========================
+   CUMPLEMES Y CUMPLEAÑOS
+========================= */
 
-  save();
-updateNextFeed();
-  requestNotifications();
+function nextCumplemes(){
 
-  toast(
-    `🍼 Próxima toma: ${fmtTime(next)}`
+  const now=new Date();
+
+  let d=new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    9,
+    9,0,0
   );
+
+  if(d<=now){
+
+    d=new Date(
+      now.getFullYear(),
+      now.getMonth()+1,
+      9,
+      9,0,0
+    );
+  }
+
+  return d;
 }
+
+
+function nextBirthday(){
+
+  const now=new Date();
+
+  let d=new Date(
+    now.getFullYear(),
+    5,
+    9,
+    9,0,0
+  );
+
+  if(d<=now){
+
+    d=new Date(
+      now.getFullYear()+1,
+      5,
+      9,
+      9,0,0
+    );
+  }
+
+  return d;
+}
+
+
+function reminderText(){
+
+  const cm=nextCumplemes();
+
+  let text=
+    `🩵 Próximo cumplemes: ${
+      cm.toLocaleDateString('es-US',{
+        month:'long',
+        day:'numeric'
+      })
+    }`;
+
+  if(data.nextFeed){
+
+    const f=new Date(data.nextFeed);
+
+    if(f>new Date()){
+
+      text+=
+        ` · 🍼 Próxima toma: ${fmtTime(f)}`;
+    }
+  }
+
+  return text;
+}
+
+
+/* =========================
+   NOTIFICACIONES
+========================= */
+
+function requestNotifications(){
+
+  if(!('Notification' in window)){
+
+    toast(
+      'Este dispositivo no permite notificaciones web aquí'
+    );
+
+    return;
+  }
+
+  Notification.requestPermission()
+    .then(p=>{
+
+      if(p==='granted'){
+
+        toast(
+          '🔔 Notificaciones activadas'
+        );
+
+        checkReminders();
+
+      }else{
+
+        toast(
+          'Las notificaciones no fueron activadas'
+        );
+      }
+
+    });
+}
+
+
+function sendNotification(title,body){
+
+  if(
+    'Notification' in window &&
+    Notification.permission==='granted'
+  ){
+
+    try{
+
+      new Notification(title,{body});
+
+    }catch(e){}
+  }
+}
+
+
+function checkReminders(){
+
+  const now=Date.now();
+
+  if(data.nextFeed){
+
+    const feedTime=
+      Number(data.nextFeed);
+
+    if(
+      now>=feedTime &&
+      now<feedTime+60000
+    ){
+
+      sendNotification(
+        '🍼 Hora de la toma de Liam 🩵',
+        'Han pasado 3 horas desde la última toma.'
+      );
+
+      data.nextFeed=null;
+
+      localStorage.setItem(
+        KEY,
+        JSON.stringify(data)
+      );
+
+      render();
+    }
+  }
+
+
+  const nowDate=new Date();
+
+  if(
+    nowDate.getDate()===9 &&
+    nowDate.getHours()===9 &&
+    nowDate.getMinutes()===0
+  ){
+
+    const key=
+      'cumplemes_'+
+      nowDate.getFullYear()+'_'+
+      nowDate.getMonth();
+
+    if(
+      localStorage.getItem(key)!=='yes'
+    ){
+
+      sendNotification(
+        '🩵 Cumplemes de Liam',
+        '¡Hoy Liam cumple un mes más de vida! 🎉'
+      );
+
+      localStorage.setItem(
+        key,
+        'yes'
+      );
+    }
+  }
+
+
+  if(
+    nowDate.getMonth()===5 &&
+    nowDate.getDate()===9 &&
+    nowDate.getHours()===9 &&
+    nowDate.getMinutes()===0
+  ){
+
+    const key=
+      'birthday_'+
+      nowDate.getFullYear();
+
+    if(
+      localStorage.getItem(key)!=='yes'
+    ){
+
+      sendNotification(
+        '🎂 ¡Feliz cumpleaños, Liam 🩵!',
+        'Hoy Liam cumple años. 🎉'
+      );
+
+      localStorage.setItem(
+        key,
+        'yes'
+      );
+    }
+  }
+}
+
+
+/* =========================
+   RENDER
+========================= */
 
 function render(){
 
-  $('#babyAge').textContent=ageText();
+  const babyAge=$('#babyAge');
+
+  if(babyAge)
+    babyAge.textContent=ageText();
+
 
   const n=new Date();
 
-  $('#todayLabel').textContent=
-    n.toLocaleDateString('es-US',{
-      weekday:'long',
-      month:'long'
-    });
+  const todayLabel=$('#todayLabel');
 
-  $('#dayNumber').textContent=n.getDate();updateNextFeed();
+  if(todayLabel){
+
+    todayLabel.textContent=
+      n.toLocaleDateString('es-US',{
+        weekday:'long',
+        month:'long'
+      });
+  }
+
+
+  const dayNumber=$('#dayNumber');
+
+  if(dayNumber)
+    dayNumber.textContent=n.getDate();
+
+
+  updateNextFeed();
+
 
   const reminder=$('#reminderInfo');
 
-  if(reminder){
-    reminder.textContent=reminderText();
-  }
+  if(reminder)
+    reminder.textContent=
+      reminderText();
 
-  const r=data.records.filter(x=>x.date===today());
 
-  const f=r.filter(x=>x.type==='feeding');
-  const s=r.filter(x=>x.type==='sleep');
-  const d=r.filter(x=>x.type==='diaper');
+  const r=data.records.filter(
+    x=>x.date===today()
+  );
+
+  const f=r.filter(
+    x=>x.type==='feeding'
+  );
+
+  const s=r.filter(
+    x=>x.type==='sleep'
+  );
+
+  const d=r.filter(
+    x=>x.type==='diaper'
+  );
+
 
   const g=data.records
     .filter(x=>x.type==='growth')
     .sort((a,b)=>b.ts-a.ts)[0];
 
-  $('#feedSummary').textContent=
-    f.length?
-    `${f.length} registro${f.length>1?'s':''}`:
-    'Sin registros';
 
-  $('#sleepSummary').textContent=
-    s.length?
-    `${s.length} registro${s.length>1?'s':''}`:
-    'Sin registros';
+  const feedSummary=$('#feedSummary');
 
-  $('#diaperSummary').textContent=`${d.length} hoy`;
+  if(feedSummary){
 
-  $('#weightSummary').textContent=
-    g?`${g.weight} lb`:'Sin registros';
+    feedSummary.textContent=
+      f.length?
+      `${f.length} registro${
+        f.length>1?'s':''
+      }`:
+      'Sin registros';
+  }
+
+
+  const sleepSummary=
+    $('#sleepSummary');
+
+  if(sleepSummary){
+
+    sleepSummary.textContent=
+      s.length?
+      `${s.length} registro${
+        s.length>1?'s':''
+      }`:
+      'Sin registros';
+  }
+
+
+  const diaperSummary=
+    $('#diaperSummary');
+
+  if(diaperSummary)
+    diaperSummary.textContent=
+      `${d.length} hoy`;
+
+
+  const weightSummary=
+    $('#weightSummary');
+
+  if(weightSummary)
+    weightSummary.textContent=
+      g?
+      `${g.weight} lb`:
+      'Sin registros';
+
 
   const recent=[...data.records]
     .sort((a,b)=>b.ts-a.ts)
     .slice(0,8);
 
-  $('#recentList').innerHTML=
-    recent.length?
 
-    recent.map(x=>`
-      <div class="record">
-        <div class="record-main">
-          <div class="record-icon">
-            ${icon(x.type)}
+  const recentList=
+    $('#recentList');
+
+  if(recentList){
+
+    recentList.innerHTML=
+      recent.length?
+
+      recent.map(x=>`
+
+        <div class="record">
+
+          <div class="record-main">
+
+            <div class="record-icon">
+              ${icon(x.type)}
+            </div>
+
+            <div>
+
+              <strong>
+                ${title(x.type)}
+              </strong>
+
+              <br>
+
+              <small>
+                ${x.detail} ·
+                ${fmtTime(x.ts)}
+              </small>
+
+            </div>
+
           </div>
 
-          <div>
-            <strong>${title(x.type)}</strong><br>
-            <small>
-              ${x.detail} · ${fmtTime(x.ts)}
-            </small>
-          </div>
+          <button
+            class="link"
+            data-delete="${x.id}">
+            Eliminar
+          </button>
+
         </div>
 
-        <button
-          class="link"
-          data-delete="${x.id}">
-          Eliminar
-        </button>
-      </div>
-    `).join(''):
+      `).join(''):
 
-    '<div class="empty">Aún no hay registros.<br>Presiona “Registrar actividad” para comenzar.</div>';
+      '<div class="empty">Aún no hay registros.<br>Presiona “Registrar actividad” para comenzar.</div>';
 
-  document.querySelectorAll('[data-delete]')
-    .forEach(b=>{
 
-      b.onclick=()=>{
+    document
+      .querySelectorAll('[data-delete]')
+      .forEach(b=>{
 
-        data.records=data.records.filter(
-          x=>x.id!==b.dataset.delete
-        );
+        b.onclick=()=>{
 
-        save();
+          data.records=
+            data.records.filter(
+              x=>x.id!==b.dataset.delete
+            );
 
-        toast('Registro eliminado');
-      };
+          save();
 
-    });
+          toast(
+            'Registro eliminado'
+          );
+        };
 
-  if(data.photo){
+      });
+  }
 
-    $('#photoBtn').style.backgroundImage=
+
+  const photoBtn=$('#photoBtn');
+
+  if(photoBtn&&data.photo){
+
+    photoBtn.style.backgroundImage=
       `url(${data.photo})`;
 
-    $('#photoBtn').style.backgroundSize='cover';
-    $('#photoBtn').textContent='';
+    photoBtn.style.backgroundSize=
+      'cover';
+
+    photoBtn.textContent='';
   }
 }
 
+
+/* =========================
+   ICONOS Y TÍTULOS
+========================= */
+
 const icon=t=>({
+
   feeding:'🍼',
   sleep:'😴',
   diaper:'🧷',
@@ -449,9 +655,12 @@ const icon=t=>({
   diary:'📖',
   activity:'✨',
   appointment:'🏥'
+
 }[t]||'📝');
 
+
 const title=t=>({
+
   feeding:'Alimentación',
   sleep:'Sueño',
   diaper:'Pañal',
@@ -459,15 +668,23 @@ const title=t=>({
   diary:'Diario',
   activity:'Actividad',
   appointment:'Cita médica'
+
 }[t]||'Registro');
+
+
+/* =========================
+   MODALES
+========================= */
 
 function openModal(kind){
 
   let html='';
 
+
   if(kind==='menu'){
 
     html=`
+
       <h2>Más</h2>
 
       <div class="menu">
@@ -495,12 +712,18 @@ function openModal(kind){
       </div>
     `;
 
-  }else if(kind==='appointments'){
+  }
+
+
+  else if(kind==='appointments'){
 
     html=`
+
       <h2>🏥 Citas médicas</h2>
 
-      <button class="primary" id="newAppointment">
+      <button
+        class="primary"
+        id="newAppointment">
         ＋ Nueva cita
       </button>
 
@@ -509,7 +732,10 @@ function openModal(kind){
         ${
           [...data.appointments]
           .sort((a,b)=>
-            (a.date+a.time).localeCompare(b.date+b.time)
+            (a.date+a.time)
+            .localeCompare(
+              b.date+b.time
+            )
           )
           .map(x=>`
 
@@ -525,7 +751,11 @@ function openModal(kind){
 
                 <small>
                   📅 ${formatDate(x.date)}
-                  ${x.time?' · ⏰ '+x.time:''}
+                  ${
+                    x.time?
+                    ' · ⏰ '+x.time:
+                    ''
+                  }
                 </small>
 
                 ${
@@ -551,13 +781,18 @@ function openModal(kind){
 
       </div>
     `;
+  }
 
-  }else if(kind==='newAppointment'){
+
+  else if(kind==='newAppointment'){
 
     html=`
+
       <h2>🏥 Nueva cita médica</h2>
 
-      <form class="form" id="form">
+      <form
+        class="form"
+        id="form">
 
         <label>
           Hospital
@@ -603,7 +838,8 @@ function openModal(kind){
             Cancelar
           </button>
 
-          <button class="btn primary-btn">
+          <button
+            class="btn primary-btn">
             Guardar cita
           </button>
 
@@ -611,22 +847,40 @@ function openModal(kind){
 
       </form>
     `;
+  }
 
-  }else if(kind==='feeding'){
+
+  else if(kind==='feeding'){
 
     html=`
+
       <h2>🍼 Alimentación</h2>
 
-      <form class="form" id="form">
+      <form
+        class="form"
+        id="form">
 
         <label>
           Tipo
 
           <select name="detail">
-            <option>Fórmula</option>
-            <option>Leche materna</option>
-            <option>Comida</option>
-            <option>Otro</option>
+
+            <option>
+              Fórmula
+            </option>
+
+            <option>
+              Leche materna
+            </option>
+
+            <option>
+              Comida
+            </option>
+
+            <option>
+              Otro
+            </option>
+
           </select>
         </label>
 
@@ -650,7 +904,8 @@ function openModal(kind){
             Cancelar
           </button>
 
-          <button class="btn primary-btn">
+          <button
+            class="btn primary-btn">
             Guardar
           </button>
 
@@ -658,13 +913,18 @@ function openModal(kind){
 
       </form>
     `;
+  }
 
-  }else if(kind==='sleep'){
+
+  else if(kind==='sleep'){
 
     html=`
+
       <h2>😴 Sueño</h2>
 
-      <form class="form" id="form">
+      <form
+        class="form"
+        id="form">
 
         <label>
           Duración (minutos)
@@ -695,7 +955,8 @@ function openModal(kind){
             Cancelar
           </button>
 
-          <button class="btn primary-btn">
+          <button
+            class="btn primary-btn">
             Guardar
           </button>
 
@@ -703,21 +964,36 @@ function openModal(kind){
 
       </form>
     `;
+  }
 
-  }else if(kind==='diaper'){
+
+  else if(kind==='diaper'){
 
     html=`
+
       <h2>🧷 Pañal</h2>
 
-      <form class="form" id="form">
+      <form
+        class="form"
+        id="form">
 
         <label>
           Tipo
 
           <select name="detail">
-            <option>Orina</option>
-            <option>Popó</option>
-            <option>Orina y popó</option>
+
+            <option>
+              Orina
+            </option>
+
+            <option>
+              Popó
+            </option>
+
+            <option>
+              Orina y popó
+            </option>
+
           </select>
         </label>
 
@@ -730,7 +1006,8 @@ function openModal(kind){
             Cancelar
           </button>
 
-          <button class="btn primary-btn">
+          <button
+            class="btn primary-btn">
             Guardar
           </button>
 
@@ -738,13 +1015,18 @@ function openModal(kind){
 
       </form>
     `;
+  }
 
-  }else if(kind==='growth'){
+
+  else if(kind==='growth'){
 
     html=`
+
       <h2>⚖️ Crecimiento</h2>
 
-      <form class="form" id="form">
+      <form
+        class="form"
+        id="form">
 
         <label>
           Peso (lb)
@@ -776,7 +1058,8 @@ function openModal(kind){
             Cancelar
           </button>
 
-          <button class="btn primary-btn">
+          <button
+            class="btn primary-btn">
             Guardar
           </button>
 
@@ -784,15 +1067,21 @@ function openModal(kind){
 
       </form>
     `;
+  }
 
-  }else if(kind==='diary'){
+
+  else if(kind==='diary'){
 
     html=`
+
       <h2>♡ Diario</h2>
 
-      <form class="form" id="form">
+      <form
+        class="form"
+        id="form">
 
         <label>
+
           Escribe una nota
 
           <textarea
@@ -812,7 +1101,8 @@ function openModal(kind){
             Cancelar
           </button>
 
-          <button class="btn primary-btn">
+          <button
+            class="btn primary-btn">
             Guardar
           </button>
 
@@ -820,21 +1110,28 @@ function openModal(kind){
 
       </form>
     `;
+  }
 
-  }else if(kind==='activity'){
+
+  else if(kind==='activity'){
 
     html=`
+
       <h2>✨ Actividad</h2>
 
-      <form class="form" id="form">
+      <form
+        class="form"
+        id="form">
 
         <label>
+
           Actividad
 
           <input
             name="detail"
             required
             placeholder="Ej. Sonrió, jugó, paseó…">
+
         </label>
 
         <div class="actions">
@@ -846,7 +1143,8 @@ function openModal(kind){
             Cancelar
           </button>
 
-          <button class="btn primary-btn">
+          <button
+            class="btn primary-btn">
             Guardar
           </button>
 
@@ -854,10 +1152,13 @@ function openModal(kind){
 
       </form>
     `;
+  }
 
-  }else if(kind==='all'){
+
+  else if(kind==='all'){
 
     html=`
+
       <h2>Todos los registros</h2>
 
       <div class="list">
@@ -872,14 +1173,16 @@ function openModal(kind){
               <div>
 
                 <strong>
-                  ${icon(x.type)} ${title(x.type)}
+                  ${icon(x.type)}
+                  ${title(x.type)}
                 </strong>
 
                 <br>
 
                 <small>
                   ${x.detail} ·
-                  ${new Date(x.ts).toLocaleString('es-US')}
+                  ${new Date(x.ts)
+                    .toLocaleString('es-US')}
                 </small>
 
               </div>
@@ -895,13 +1198,22 @@ function openModal(kind){
     `;
   }
 
+
   $('#modalContent').innerHTML=html;
+
   $('#modal').hidden=false;
 
-  document.querySelectorAll('[data-close]')
-    .forEach(b=>b.onclick=closeModal);
 
-  const form=$('#modalContent form');
+  document
+    .querySelectorAll('[data-close]')
+    .forEach(
+      b=>b.onclick=closeModal
+    );
+
+
+  const form=
+    $('#modalContent form');
+
 
   if(form){
 
@@ -910,151 +1222,263 @@ function openModal(kind){
       e.preventDefault();
 
       const fd=new FormData(form);
-      const o=Object.fromEntries(fd);
+
+      const o=
+        Object.fromEntries(fd);
+
 
       if(kind==='newAppointment'){
 
         data.appointments.push({
+
           id:crypto.randomUUID(),
+
           hospital:o.hospital,
+
           date:o.date,
+
           time:o.time,
+
           note:o.note,
+
           ts:Date.now()
+
         });
 
         save();
+
         closeModal();
-        toast('Cita médica guardada');
+
+        toast(
+          'Cita médica guardada'
+        );
 
         return;
       }
 
-      let detail=o.detail||o.note||'';
 
-      if(kind==='feeding'&&o.amount)
-        detail+=` · ${o.amount} oz`;
+      let detail=
+        o.detail||o.note||'';
 
-      if(kind==='sleep')
-        detail=`${o.duration} min${o.note?' · '+o.note:''}`;
 
-      if(kind==='growth')
-        detail=`${o.weight} lb${o.height?' · '+o.height+' cm':''}`;
+      if(
+        kind==='feeding' &&
+        o.amount
+      ){
+
+        detail+=
+          ` · ${o.amount} oz`;
+      }
+
+
+      if(kind==='sleep'){
+
+        detail=
+          `${o.duration} min`+
+          `${
+            o.note?
+            ' · '+o.note:
+            ''
+          }`;
+      }
+
+
+      if(kind==='growth'){
+
+        detail=
+          `${o.weight} lb`+
+          `${
+            o.height?
+            ' · '+o.height+' cm':
+            ''
+          }`;
+      }
+
 
       data.records.push({
+
         id:crypto.randomUUID(),
+
         type:kind,
+
         detail,
+
         date:today(),
+
         ts:Date.now(),
+
         weight:o.weight||null
+
       });
+
 
       save();
 
-      if(kind==='feeding'){
+
+      if(kind==='feeding')
         scheduleNextFeed();
-      }
+
 
       closeModal();
 
-      toast('Guardado correctamente');
+
+      toast(
+        'Guardado correctamente'
+      );
     };
   }
 
-  $('#newAppointment')?.addEventListener(
-    'click',
-    ()=>openModal('newAppointment')
-  );
 
-  document.querySelectorAll('[data-appt-delete]')
+  $('#newAppointment')
+    ?.addEventListener(
+      'click',
+      ()=>openModal(
+        'newAppointment'
+      )
+    );
+
+
+  document
+    .querySelectorAll(
+      '[data-appt-delete]'
+    )
     .forEach(b=>{
 
       b.onclick=()=>{
 
-        data.appointments=data.appointments.filter(
-          x=>x.id!==b.dataset.apptDelete
-        );
+        data.appointments=
+          data.appointments.filter(
+            x=>
+              x.id!==b.dataset.apptDelete
+          );
 
         save();
 
-        openModal('appointments');
+        openModal(
+          'appointments'
+        );
 
-        toast('Cita eliminada');
+        toast(
+          'Cita eliminada'
+        );
       };
 
     });
 
-  document.querySelector('[data-action="notifications"]')
+
+  document
+    .querySelector(
+      '[data-action="notifications"]'
+    )
     ?.addEventListener(
       'click',
       requestNotifications
     );
 
-  document.querySelector('[data-action="appointments"]')
+
+  document
+    .querySelector(
+      '[data-action="appointments"]'
+    )
     ?.addEventListener(
       'click',
-      ()=>openModal('appointments')
+      ()=>openModal(
+        'appointments'
+      )
     );
 
-  document.querySelector('[data-action="export"]')
+
+  document
+    .querySelector(
+      '[data-action="export"]'
+    )
     ?.addEventListener(
       'click',
       exportData
     );
 
-  document.querySelector('[data-action="clear"]')
+
+  document
+    .querySelector(
+      '[data-action="clear"]'
+    )
     ?.addEventListener(
       'click',
       ()=>{
 
-        if(confirm('¿Borrar todos los registros?')){
+        if(
+          confirm(
+            '¿Borrar todos los registros?'
+          )
+        ){
 
           data.records=[];
+
           data.nextFeed=null;
 
           save();
 
           closeModal();
 
-          toast('Registros borrados');
+          toast(
+            'Registros borrados'
+          );
         }
 
-      }
-    );
+      });
 
-  document.querySelector('[data-action="photo"]')
+
+  document
+    .querySelector(
+      '[data-action="photo"]'
+    )
     ?.addEventListener(
       'click',
       ()=>{
+
         $('#photoInput').click();
+
         closeModal();
       }
     );
 }
 
+
+/* =========================
+   UTILIDADES
+========================= */
+
 function formatDate(date){
 
   if(!date)return '';
 
-  return new Date(date+'T12:00:00')
-    .toLocaleDateString('es-US',{
+  return new Date(
+    date+'T12:00:00'
+  ).toLocaleDateString(
+    'es-US',
+    {
       weekday:'short',
       month:'long',
       day:'numeric',
       year:'numeric'
-    });
+    }
+  );
 }
 
+
 function closeModal(){
+
   $('#modal').hidden=true;
 }
 
+
 function toast(t){
 
-  const x=document.createElement('div');
+  const x=
+    document.createElement('div');
 
   x.className='toast';
+
   x.textContent=t;
 
   document.body.append(x);
@@ -1065,52 +1489,94 @@ function toast(t){
   );
 }
 
+
 function exportData(){
 
   const blob=new Blob(
-    [JSON.stringify({baby,data},null,2)],
+    [
+      JSON.stringify(
+        {baby,data},
+        null,
+        2
+      )
+    ],
     {type:'application/json'}
   );
 
-  const a=document.createElement('a');
+  const a=
+    document.createElement('a');
 
-  a.href=URL.createObjectURL(blob);
-  a.download='liam-registros.json';
+  a.href=
+    URL.createObjectURL(blob);
+
+  a.download=
+    'liam-registros.json';
 
   a.click();
 
-  URL.revokeObjectURL(a.href);
-
-  toast('Archivo exportado');
-}
-
-$('#quickAdd').onclick=()=>openModal('activity');
-
-document.querySelectorAll('[data-open]')
-  .forEach(x=>
-    x.onclick=()=>openModal(x.dataset.open)
+  URL.revokeObjectURL(
+    a.href
   );
 
-$('#viewAll').onclick=()=>openModal('all');
+  toast(
+    'Archivo exportado'
+  );
+}
 
-$('#closeModal').onclick=closeModal;
+
+/* =========================
+   EVENTOS
+========================= */
+
+$('#quickAdd').onclick=
+  ()=>openModal('activity');
+
+
+document
+  .querySelectorAll('[data-open]')
+  .forEach(
+    x=>
+      x.onclick=
+        ()=>openModal(
+          x.dataset.open
+        )
+  );
+
+
+$('#viewAll').onclick=
+  ()=>openModal('all');
+
+
+$('#closeModal').onclick=
+  closeModal;
+
 
 $('#modal').onclick=e=>{
+
   if(e.target.id==='modal')
     closeModal();
 };
 
-document.querySelectorAll('.nav')
+
+document
+  .querySelectorAll('.nav')
   .forEach(b=>{
 
     b.onclick=()=>{
 
-      document.querySelectorAll('.nav')
-        .forEach(n=>n.classList.remove('active'));
+      document
+        .querySelectorAll('.nav')
+        .forEach(
+          n=>
+            n.classList.remove(
+              'active'
+            )
+        );
 
       b.classList.add('active');
 
       const t=b.dataset.tab;
+
 
       if(t==='activity')
         openModal('activity');
@@ -1123,11 +1589,15 @@ document.querySelectorAll('.nav')
 
       else if(t==='more')
         openModal('menu');
+
     };
 
   });
 
-$('#photoBtn').onclick=()=>$('#photoInput').click();
+
+$('#photoBtn').onclick=
+  ()=>$('#photoInput').click();
+
 
 $('#photoInput').onchange=e=>{
 
@@ -1135,7 +1605,8 @@ $('#photoInput').onchange=e=>{
 
   if(!f)return;
 
-  const rd=new FileReader();
+  const rd=
+    new FileReader();
 
   rd.onload=()=>{
 
@@ -1143,22 +1614,37 @@ $('#photoInput').onchange=e=>{
 
     save();
 
-    toast('Foto guardada');
+    toast(
+      'Foto guardada'
+    );
   };
 
   rd.readAsDataURL(f);
 };
 
+
+/* =========================
+   INICIO
+========================= */
+
 render();
+
 updateNextFeed();
 
-setInterval(updateNextFeed, 30000);
+
+setInterval(
+  updateNextFeed,
+  30000
+);
+
+
 setInterval(()=>{
 
   const el=$('#babyAge');
 
   if(el)
-    el.textContent=ageText();
+    el.textContent=
+      ageText();
 
   checkReminders();
 
